@@ -10,7 +10,7 @@ from typing import List, Dict
         'uuid==1.30'
     ]
 )
-def blur_objects(images: sieve.Image, tracked_objects: List, class_to_blur: str, object_masks: List) -> sieve.Image:
+def blur_objects(images: sieve.Image, tracked_objects: List[Dict[str, List[Dict]]], class_to_blur: str, object_masks: List) -> sieve.Image:
     import numpy as np
     import cv2
     import uuid
@@ -19,18 +19,24 @@ def blur_objects(images: sieve.Image, tracked_objects: List, class_to_blur: str,
     for im in images:
         image_paths.append(im)
 
-    tracked_objects_by_frame_number = sorted(tracked_objects, key=lambda k: k[0]['frame_number'])
+    # Modified tracked_objects_by_frame_number creation to handle the new structure
+    tracked_objects_by_frame_number = {}
+    for obj_dict in tracked_objects:
+        for key, value in obj_dict.items():
+            frame_number = value[0]['frame_number']
+            tracked_objects_by_frame_number[frame_number] = value
+
     images_by_frame_number = sorted(image_paths, key=lambda k: k.frame_number)
     object_masks_by_frame_number = sorted(object_masks, key=lambda k: k[0]['frame_number'])
 
     for i in range(len(images_by_frame_number)):
         image = images_by_frame_number[i]
         img = cv2.imread(image.path)
-        objects_in_frame = tracked_objects_by_frame_number[i]
+        objects_in_frame = tracked_objects_by_frame_number.get(i, [])
         masks_in_frame = object_masks_by_frame_number[i]
 
         for obj, mask in zip(objects_in_frame, masks_in_frame):
-            if obj['class_name'] == class_to_blur:
+            if obj['class'] == class_to_blur:  # Changed the key from 'class_name' to 'class'
                 mask_array = mask['segmentation']
                 blurred_img = cv2.GaussianBlur(img, (99, 99), 30)
 
