@@ -19,7 +19,6 @@ def blur_objects(images: sieve.Image, tracked_objects: List[Dict[str, List[Dict]
     for im in images:
         image_paths.append(im)
 
-    # Modified tracked_objects_by_frame_number creation to handle the new structure
     tracked_objects_by_frame_number = {}
     for obj_dict in tracked_objects:
         for key, value in obj_dict.items():
@@ -35,13 +34,23 @@ def blur_objects(images: sieve.Image, tracked_objects: List[Dict[str, List[Dict]
         objects_in_frame = tracked_objects_by_frame_number.get(i, [])
         masks_in_frame = object_masks_by_frame_number[i]
 
+        # Find the largest mask in the bounding box
+        largest_area = 0
+        largest_mask = None
         for obj, mask in zip(objects_in_frame, masks_in_frame):
-            if obj['class'] == class_to_blur:  # Changed the key from 'class_name' to 'class'
-                mask_array = mask['segmentation']
-                blurred_img = cv2.GaussianBlur(img, (99, 99), 30)
+            if obj['class'] == class_to_blur:
+                mask_area = mask['area']
+                if mask_area > largest_area:
+                    largest_area = mask_area
+                    largest_mask = mask
 
-                # Replace the original image with the blurred version within the mask
-                img[mask_array] = blurred_img[mask_array]
+        # If a mask is found, blur it
+        if largest_mask is not None:
+            mask_array = largest_mask['segmentation']
+            blurred_img = cv2.GaussianBlur(img, (99, 99), 30)
+
+            # Replace the original image with the blurred version within the mask
+            img[mask_array] = blurred_img[mask_array]
 
         new_path = f'{uuid.uuid4()}.jpg'
         cv2.imwrite(new_path, img)
