@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple
         "torchvision==0.9.1",
         "ipython==8.4.0",
         "psutil==5.8.0",
-        "seaborn==0.11.2"
+        "seaborn==0.11.2",
         "opencv-python-headless==4.5.4.60",
     ],
     system_packages=["libgl1-mesa-glx", "libglib2.0-0", "ffmpeg"],

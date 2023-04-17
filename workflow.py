@@ -4,7 +4,7 @@ from typing import Dict
 from sam import SAM
 from blur import blur_objects
 
-@sieve.workflow(name="selective_blur_metadata")
+@sieve.workflow(name="selective_object_blur")
 def selective_blur_metadata_workflow(video: sieve.Video, class_to_blur: str) -> Dict:
     # Split video into frames
     images = sieve.reference("sieve-developer/video-splitter")(video)
