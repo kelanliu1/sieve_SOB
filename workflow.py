@@ -1,24 +1,27 @@
+import cv2
 import sieve
 from typing import Dict
+from sam import SAM
 from blur import blur_objects
-import cv2
 
-@sieve.workflow(name="selective_blur")
-def selective_blur_workflow(video: sieve.Video, class_to_blur: str) -> Dict:
+@sieve.workflow(name="selective_blur_metadata")
+def selective_blur_metadata_workflow(video: sieve.Video, class_to_blur: str) -> Dict:
+    # Split video into frames
     images = sieve.reference("sieve-developer/video-splitter")(video)
+    
+    # Perform YOLOv5 object detection
     yolo_outputs = sieve.reference("sieve-developer/yolo")(images)
-    sort_outputs = sieve.reference("sieve-developer/sort")(yolo_outputs)
+    
+    # Perform SORT object tracking
+    tracked_objects = sieve.reference("sieve-developer/sort")(yolo_outputs)
 
-    blurred_images = []
-    for img, detections, tracked_objects in zip(images, yolo_outputs, sort_outputs):
-        image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        blurred_rgb = blur_objects(image_rgb, class_to_blur, detections, tracked_objects)
-        blurred_image = cv2.cvtColor(blurred_rgb, cv2.COLOR_RGB2BGR)
-        blurred_images.append(blurred_image)
+    # Get object masks using SAM
+    object_masks = SAM()(images)
 
-    # Combine the images back into a video, or process them as desired
-    # ...
+    # Blur objects
+    blurred_images = blur_objects(images, tracked_objects, class_to_blur, object_masks)
 
-    return {
-        # Your output
-    }
+    # Combine frames into a video
+    blurred_video = sieve.reference("sieve-developer/frame-combiner")(blurred_images)
+
+    return blurred_video, tracked_objects, object_masks
